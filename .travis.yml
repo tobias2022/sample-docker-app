@@ -6,15 +6,15 @@ node_js:
 services:
     - docker
 before_install:
-    - docker build -t yuwangjr/sample-app -f Dockerfile.dev .
+    - docker build -t tobias2022/sample-app -f Dockerfile.dev .
 script:
-    - docker run -e CI=true yuwangjr/sample-app npm run test -- --coverage --watchAll=false
+    - docker run -e CI=true tobias2022/sample-app npm run test -- --coverage --watchAll=false
 deploy:
   provider: elasticbeanstalk
-  region: "us-east-1" ### AWS region of your choice
+  region: "us-west-1" ### AWS region of your choice
   app: "sample-docker-react" ### Your EB App name
   env: "Sampledockerreact-env" ### Your EB App environment name
-  bucket_name: "elasticbeanstalk-us-east-1-780390497435" ### S3 bucket name
+  bucket_name: "elasticbeanstalk-us-west-1-365941920181" ### S3 bucket name
   bucket_path: "EBApptest" ### S3 folder name under S3 bucket above
   on:
     branch: main
