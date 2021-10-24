@@ -1,29 +1,31 @@
-FROM node:latest AS builder
-# Above, we set the base image for this first stage as a light weigh node
+FROM node:14-alpine
 
-WORKDIR './app'
-# Above we set the build environment as a folder called /app in the docker container to prevent clashes
+ENV GLIBC_VER=2.31-r0
 
-COPY package*.json ./
-# To prevent repeated npm installs anytime we make any change, we'd copy over the package.json and install things first
-
-RUN npm install
-# Install dependencies
-
-COPY ./ ./
-# Copy the rest of the project over to the /app folder in the container
-
-RUN npm run build
-# Build the production version of our app in the container
-
-FROM nginx
-# The image needs nginx to run on aws
-
-EXPOSE 80
-#Nginx runs on port 80, so elastic beanstalk uses the expose command to expose this port
-
-COPY --from=0 /app/build /usr/share/nginx/html
-# Copy the content of the builder step, move the contents of build folder into the html folder in this nginx container
-# That's where our app would run from in aws
-
-# No need to specify a command to start nginx as it gets started by default when a container with the image starts
+# install glibc compatibility for alpine
+RUN apk --no-cache add \
+    binutils \
+    curl \
+    && curl -sL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /etc/apk/keys/sgerrand.rsa.pub \
+    && curl -sLO https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VER}/glibc-${GLIBC_VER}.apk \
+    && curl -sLO https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VER}/glibc-bin-${GLIBC_VER}.apk \
+    && curl -sLO https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VER}/glibc-i18n-${GLIBC_VER}.apk \
+    && apk add --no-cache \
+    glibc-${GLIBC_VER}.apk \
+    glibc-bin-${GLIBC_VER}.apk \
+    glibc-i18n-${GLIBC_VER}.apk \
+    && /usr/glibc-compat/bin/localedef -i en_US -f UTF-8 en_US.UTF-8 \
+    && curl -sL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip \
+    && unzip awscliv2.zip \
+    && aws/install \
+    && rm -rf \
+    awscliv2.zip \
+    aws \
+    /usr/local/aws-cli/v2/*/dist/aws_completer \
+    /usr/local/aws-cli/v2/*/dist/awscli/data/ac.index \
+    /usr/local/aws-cli/v2/*/dist/awscli/examples \
+    glibc-*.apk \
+    && apk --no-cache del \
+    binutils \
+    curl \
+    && rm -rf /var/cache/apk/*
